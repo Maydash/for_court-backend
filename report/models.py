@@ -80,7 +80,7 @@ class Alimony(models.Model):
     ruling_scan = models.FileField(verbose_name='Kararyň nusgasy:', upload_to="alimony files/", blank=True, null=True)
     executor = models.CharField(verbose_name='Ýerine ýetirýän:', max_length=100)
     executor_register = models.CharField(verbose_name='Önumçiligiň belgisi:', max_length=100)
-    executor_date = models.DateTimeField(verbose_name='Önumciligin senesi:')
+    executor_date = models.DateTimeField(verbose_name='Önumciligiň senesi:')
     must_pay = models.OneToOneField(MustPay, verbose_name='Bergidaryň ady we familiýasy:', on_delete=models.CASCADE)
     recipient = models.OneToOneField(Recipient, verbose_name='Algydaryn ady we familiyasy:', on_delete=models.CASCADE)
     note = models.TextField(verbose_name='Bellik:', blank=True)
