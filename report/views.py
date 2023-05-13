@@ -1,6 +1,7 @@
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, parser_classes
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import check_password
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
@@ -44,6 +45,18 @@ def get_recipient_by_id(request, id):
     if request.method == 'GET':
         serializer = RecipientSerializer(data, context={'request':request})
         return Response(serializer.data)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
+def add_recipient(request):
+    if request.method == 'POST':
+        serializer = RecipientSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'SUCCESS': 'recipient added successfully.'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
