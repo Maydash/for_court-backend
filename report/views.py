@@ -1,6 +1,7 @@
-from rest_framework.decorators import api_view, authentication_classes, permission_classes, parser_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, parser_classes, throttle_classes
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import check_password
 from rest_framework.authtoken.models import Token
@@ -10,7 +11,14 @@ from rest_framework import status
 from .serializers import *
 from .models import *
 
+class IpThrottle(SimpleRateThrottle):
+    rate = '100/min'
+    
+    def get_cache_key(self, request, view):
+        return self.get_ident(request)
+
 @api_view(['GET'])
+@throttle_classes([IpThrottle])
 def logo_api(request):
     if request.method == 'GET':
         data = Logos.objects.all()
@@ -18,6 +26,7 @@ def logo_api(request):
         return Response(serializer.data)
 
 @api_view(['POST'])
+@throttle_classes([IpThrottle])
 def login_api(request):
     if request.method == 'POST':
         username = request.data['username']
@@ -35,6 +44,7 @@ def login_api(request):
             return Response({'ERROR': 'Invalid password'}, status=status.HTTP_417_EXPECTATION_FAILED)
 
 @api_view(['GET'])
+@throttle_classes([IpThrottle])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def get_recipient_by_id(request, id):
@@ -47,6 +57,7 @@ def get_recipient_by_id(request, id):
         return Response(serializer.data)
 
 @api_view(['POST'])
+@throttle_classes([IpThrottle])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser, MultiPartParser, FormParser])
@@ -59,6 +70,7 @@ def add_recipient(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
+@throttle_classes([IpThrottle])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def get_recipient_children(request, id):
@@ -72,17 +84,34 @@ def get_recipient_children(request, id):
         return Response(serializer.data)
 
 @api_view(['GET'])
+@throttle_classes([IpThrottle])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def get_recipient_child_by_id(request, recipient_id, child_id):
-    try:
-        recipient = Recipient.objects.get(id=recipient_id)
-    except Recipient.DoesNotExist:
-        return Response({'ERROR': 'Recipient does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
     if request.method == 'GET':
         try:
-            child = recipient.children.get(id=child_id)
-        except RecipientChild.DoesNotExist:
-            return Response({'ERROR': 'Child does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
-        serializer = RecipientChildSerializer(child, context={'request': request})
-        return Response(serializer.data)
+            recipient = Recipient.objects.get(id=recipient_id)
+        except Recipient.DoesNotExist:
+            return Response({'ERROR': 'Recipient does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
+        if request.method == 'GET':
+            try:
+                child = recipient.children.get(id=child_id)
+            except RecipientChild.DoesNotExist:
+                return Response({'ERROR': 'Child does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
+            serializer = RecipientChildSerializer(child, context={'request': request})
+            return Response(serializer.data)
+
+@api_view(['POST'])
+@throttle_classes([IpThrottle])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def add_recipient_child(request):
+    if request.method == 'POST':
+        serializer = RecipientChildSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'SUCCESS': 'recipient added successfully.'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+

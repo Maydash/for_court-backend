@@ -15,3 +15,8 @@ class RecipientChildSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecipientChild
         fields = '__all__'
+
+class MustPaySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MustPay
+        field = '__all__'
