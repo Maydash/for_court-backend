@@ -9,14 +9,28 @@ class LogoSerializer(serializers.ModelSerializer):
 class RecipientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipient
-        fields = '__all__'
+        fields = ('id',
+                  'name_and_lastname',
+                  'phone_number',
+                  'birthday',
+                  'address',
+                  'document_scan',
+                  'recipient_adder')
+
+        extra_kwargs = {'recipient_adder':{
+            'required': False
+        }}
 
 class RecipientChildSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecipientChild
         fields = '__all__'
 
+        extra_kwargs = {'recipient':{
+            'required': False
+        }}
+
 class MustPaySerializer(serializers.ModelSerializer):
     class Meta:
         model = MustPay
-        field = '__all__'
+        fields = '__all__'

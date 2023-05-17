@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+
 class Logos(models.Model):
     image = models.ImageField(upload_to='logo')
 
@@ -9,6 +10,7 @@ class Logos(models.Model):
 
 #algydar
 class Recipient(models.Model):
+    recipient_adder = models.ForeignKey(User, verbose_name='Admin:', on_delete=models.SET_NULL, null=True, blank=True, to_field='username')
     name_and_lastname = models.CharField(verbose_name='Algydaryň ady we familiýasy:', max_length=200, unique=True)
     birthday = models.DateField(verbose_name='oglan senesi:')
     phone_number = models.CharField(max_length=12, verbose_name='Telefon belgisi:')
@@ -24,6 +26,7 @@ class Recipient(models.Model):
 
 # algydaryn chagalary.
 class RecipientChild(models.Model):
+    child_adder = models.ForeignKey(User, verbose_name='Admin:', on_delete=models.SET_NULL, null=True, blank=True, to_field='username')
     recipient = models.ForeignKey(Recipient, to_field='name_and_lastname', on_delete=models.CASCADE, verbose_name='Algydar', related_name='children')
     name_and_lastname = models.CharField(verbose_name='Çaganyň ady we Familiýasy:', max_length=200)
     birthday = models.DateField(verbose_name='Doglan senesi:')

@@ -43,31 +43,30 @@ def login_api(request):
         else:
             return Response({'ERROR': 'Invalid password'}, status=status.HTTP_417_EXPECTATION_FAILED)
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @throttle_classes([IpThrottle])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def get_recipient_by_id(request, id):
+def get_recipient_by_id_delete_patch(request, id):
     try:
-        data = Recipient.objects.get(id=id)
+        recipient = Recipient.objects.get(id=id)
     except Recipient.DoesNotExist:
         return Response({'ERROR': 'Recipient does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
     if request.method == 'GET':
-        serializer = RecipientSerializer(data, context={'request':request})
+        print(request.user)
+        serializer = RecipientSerializer(recipient, context={'request':request})
         return Response(serializer.data)
-
-@api_view(['POST'])
-@throttle_classes([IpThrottle])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@parser_classes([JSONParser, MultiPartParser, FormParser])
-def add_recipient(request):
-    if request.method == 'POST':
-        serializer = RecipientSerializer(data=request.data)
+    elif request.method == 'PATCH':
+        serializer = RecipientSerializer(instance=recipient, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response({'SUCCESS': 'recipient added successfully.'}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'SUCCESS': 'Recipient updated successfully.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors)
+    elif request.method == 'DELETE':
+        if recipient.recipient_adder == request.user:
+            recipient.delete()
+            return Response({'SUCCESS': 'Recipient deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+        return Response({'ERROR': 'User can delete only he\'s added recipients'}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @throttle_classes([IpThrottle])
@@ -83,35 +82,167 @@ def get_recipient_children(request, id):
         serializer = RecipientChildSerializer(child, context={'request': request}, many=True)
         return Response(serializer.data)
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @throttle_classes([IpThrottle])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def get_recipient_child_by_id(request, recipient_id, child_id):
+def get_recipient_child_by_id_update_delete(request, recipient_id, child_id):
+    try:
+        recipient = Recipient.objects.get(id=recipient_id)
+    except Recipient.DoesNotExist:
+        return Response({'ERROR': 'Recipient does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
     if request.method == 'GET':
         try:
-            recipient = Recipient.objects.get(id=recipient_id)
-        except Recipient.DoesNotExist:
-            return Response({'ERROR': 'Recipient does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
-        if request.method == 'GET':
-            try:
-                child = recipient.children.get(id=child_id)
-            except RecipientChild.DoesNotExist:
-                return Response({'ERROR': 'Child does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
-            serializer = RecipientChildSerializer(child, context={'request': request})
-            return Response(serializer.data)
-
-@api_view(['POST'])
-@throttle_classes([IpThrottle])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-def add_recipient_child(request):
-    if request.method == 'POST':
-        serializer = RecipientChildSerializer(data=request.data)
+            child = recipient.children.get(id=child_id)
+        except RecipientChild.DoesNotExist:
+            return Response({'ERROR': 'Child does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
+        serializer = RecipientChildSerializer(child, context={'request': request})
+        return Response(serializer.data)
+    elif request.method == 'PATCH':
+        serializer = RecipientChildSerializer(instance=child, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response({'SUCCESS': 'recipient added successfully.'}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'SUCCESS': 'Child updated successfully.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors)
+    elif request.method == 'DELETE':
+        if child.child_adder == request.user:
+            recipient.delete()
+        return Response({'SUCCESS': 'Child deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+    return Response({'ERROR': 'User can delete only he\'s added children'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@throttle_classes([IpThrottle])
+def get_all_must_pays(request):
+    if request.method == 'GET':
+        data = MustPay.objects.all()
+        serializer = MustPaySerializer(data, context={'request': request}, many=True)
+        return Response(serializer.data)
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@throttle_classes([IpThrottle])
+def get_mustpay_by_id_patch_delete(request, id):
+    try:
+        mustpay = MustPay.objects.get(id=id)
+    except MustPay.DoesNotExist:
+        return Response({'ERROR': 'MustPay does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
+    if request.method == 'GET':
+        serializer = MustPaySerializer(mustpay, context={'request': request})
+        return Response(serializer.data)
+    elif request.method == 'PATCH':
+        serializer = MustPaySerializer(instance=mustpay, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'SUCCESS': 'MustPay updated successfully.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors)
+    elif request.method == 'DELETE':
+        mustpay.delete()
+        return Response({'SUCCESS': 'MustPay deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+    # return Response({'ERROR': 'User can delete only he\'s added mustpays'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# @api_view(['POST'])
+# @throttle_classes([IpThrottle])
+# @authentication_classes([TokenAuthentication])
+# @permission_classes([IsAuthenticated])
+# @parser_classes([JSONParser, MultiPartParser, FormParser])
+# def add_recipient_child(request):
+#     if request.method == 'POST':
+#         serializer = RecipientChildSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save(child_adder=request.user)
+#             return Response({'SUCCESS': 'recipient added successfully.'}, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# @api_view(['POST'])
+# @authentication_classes([TokenAuthentication])
+# @permission_classes([IsAuthenticated])
+# @parser_classes([JSONParser])
+# def create_models(request):
+#     m1_d = request.data.get('recipient')
+#     m2_d = request.data.get('child')
+
+#     m1_d_ser = RecipientSerializer(data=m1_d)
+#     if m1_d_ser.is_valid():
+#         m1 = m1_d_ser.save(recipient_adder=request.user)
+#     else:
+#         return Response(m1_d_ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#     m2_d_ser = RecipientChildSerializer(data=m2_d)
+#     if m2_d_ser.is_valid():
+#         m2 = m2_d_ser.save(child_adder=request.user, recipient=m1)
+#     else:
+#         return Response(m2_d_ser.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+#     # data = {
+#     #     'recipient': m1_d_ser(m1).data,
+#     #     'child': m2_d_ser(m2).data
+#     # }
+
+#     return Response({'ok'}, status=status.HTTP_201_CREATED)
