@@ -34,3 +34,8 @@ class MustPaySerializer(serializers.ModelSerializer):
     class Meta:
         model = MustPay
         fields = '__all__'
+
+class MustPayReceiptSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MustPayReceipt
+        fields = '__all__'

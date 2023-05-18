@@ -58,7 +58,7 @@ class MustPay(models.Model):
 
 # tolegler
 class MustPayReceipt(models.Model):
-    must_pay = models.ForeignKey(MustPay, to_field='name_and_lastname', on_delete=models.CASCADE, verbose_name='Bergidar:')
+    must_pay = models.ForeignKey(MustPay, to_field='name_and_lastname', on_delete=models.CASCADE, verbose_name='Bergidar:', related_name='receipts')
     full_assessment = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Tölegiň doly möçberi:')
     payment = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Tölenen möçberi:')
     payment_date = models.DateField(verbose_name='Iň soňky tölenen senesi:')

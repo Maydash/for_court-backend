@@ -31,7 +31,10 @@ def login_api(request):
     if request.method == 'POST':
         username = request.data['username']
         password = request.data['password']
-        user = User.objects.get(username=username)
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({'Error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
         if check_password(password, user.password):
             try:
                 token = Token.objects.create(user=user)
@@ -91,11 +94,11 @@ def get_recipient_child_by_id_update_delete(request, recipient_id, child_id):
         recipient = Recipient.objects.get(id=recipient_id)
     except Recipient.DoesNotExist:
         return Response({'ERROR': 'Recipient does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
+    try:
+        child = recipient.children.get(id=child_id)
+    except RecipientChild.DoesNotExist:
+        return Response({'ERROR': 'Child does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
     if request.method == 'GET':
-        try:
-            child = recipient.children.get(id=child_id)
-        except RecipientChild.DoesNotExist:
-            return Response({'ERROR': 'Child does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
         serializer = RecipientChildSerializer(child, context={'request': request})
         return Response(serializer.data)
     elif request.method == 'PATCH':
@@ -106,8 +109,8 @@ def get_recipient_child_by_id_update_delete(request, recipient_id, child_id):
         return Response(serializer.errors)
     elif request.method == 'DELETE':
         if child.child_adder == request.user:
-            recipient.delete()
-        return Response({'SUCCESS': 'Child deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+            child.delete()
+            return Response({'SUCCESS': 'Child deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
     return Response({'ERROR': 'User can delete only he\'s added children'}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
@@ -143,6 +146,45 @@ def get_mustpay_by_id_patch_delete(request, id):
         return Response({'SUCCESS': 'MustPay deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
     # return Response({'ERROR': 'User can delete only he\'s added mustpays'}, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@throttle_classes([IpThrottle])
+def get_mustpay_receipts(request, id):
+    try:    
+        mustpay = MustPay.objects.get(id=id)
+    except MustPay.DoesNotExist:
+        return Response({'ERROR': 'Must pay does not exists'}, status=status.HTTP_204_NO_CONTENT)
+    receipts = mustpay.receipts.all()
+    serializer = MustPayReceiptSerializer(receipts, context={'request': request}, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@throttle_classes([IpThrottle])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_receipt__by_id_update_delete(request, mustpay_id, receipt_id):
+    try:
+        mustpay = MustPay.objects.get(id=mustpay_id)
+    except MustPay.DoesNotExist:
+        return Response({'ERROR': 'Must pay does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
+    try:
+        receipt = mustpay.receipts.get(id=receipt_id)
+    except MustPayReceipt.DoesNotExist:
+        return Response({'ERROR': 'Receipt does NOT exists'}, status=status.HTTP_204_NO_CONTENT)
+    if request.method == 'GET':
+        serializer = MustPayReceiptSerializer(receipt, context={'request': request})
+        return Response(serializer.data)
+    elif request.method == 'PATCH':
+        serializer = MustPayReceiptSerializer(instance=receipt, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'SUCCESS': 'Receipt updated successfully.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors)
+    elif request.method == 'DELETE':
+        receipt.delete()
+        return Response({'SUCCESS': 'Child deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+    return Response({'ERROR': 'User can delete only he\'s added children'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
