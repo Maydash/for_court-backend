@@ -200,14 +200,6 @@ class InsolventsSinceThreeMonths(APIView):
         serializer = MustPaySerializer(insolvents, context={'request': request}, many=True)
         return Response(serializer.data)
 
-    # def get(self, request):
-    #     unpaids = []
-    #     for mustpay in MustPay.objects.all():
-    #         if (mustpay.receipts.latest().payment_date - date.today()).days > 90:
-    #             unpaids.append(mustpay)
-    #     serializer = MustPaySerializer(unpaids, context={'request': request}, many=True)
-    #     return Response(serializer.data)
-
 class AlimonyList(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
