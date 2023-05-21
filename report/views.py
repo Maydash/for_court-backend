@@ -188,17 +188,25 @@ def get_receipt__by_id_update_delete(request, mustpay_id, receipt_id):
     return Response({'ERROR': 'User can delete only he\'s added children'}, status=status.HTTP_400_BAD_REQUEST)
 
 class InsolventsSinceThreeMonths(APIView):
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
+    # authentication_classes = [TokenAuthentication]
+    # permission_classes = [IsAuthenticated]
     throttle_classes = [IpThrottle]
 
     def get(self, request):
-        unpaids = []
-        for mustpay in MustPay.objects.all():
-            if (mustpay.receipts.latest().payment_date - date.today()).days > 90:
-                unpaids.append(mustpay)
-        serializer = MustPaySerializer(unpaids, context={'request': request}, many=True)
+        insolvents = []
+        for alimony in Alimony.objects.filter(status=False):
+            if (date.today() - alimony.must_pay.receipts.latest().payment_date).days > 90:
+                insolvents.append(alimony.must_pay)
+        serializer = MustPaySerializer(insolvents, context={'request': request}, many=True)
         return Response(serializer.data)
+
+    # def get(self, request):
+    #     unpaids = []
+    #     for mustpay in MustPay.objects.all():
+    #         if (mustpay.receipts.latest().payment_date - date.today()).days > 90:
+    #             unpaids.append(mustpay)
+    #     serializer = MustPaySerializer(unpaids, context={'request': request}, many=True)
+    #     return Response(serializer.data)
 
 class AlimonyList(APIView):
     authentication_classes = [TokenAuthentication]

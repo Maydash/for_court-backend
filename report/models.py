@@ -89,7 +89,7 @@ class MustPayReceipt(models.Model):
 # alimentler.
 class Alimony(models.Model):
     user = models.ForeignKey(User, verbose_name='Admin:', on_delete=models.SET_NULL, null=True)
-    category = models.ForeignKey(Category, verbose_name='Bölum:', on_delete=models.SET_NULL, null=True, related_name='alimonies')
+    Category = models.ForeignKey(Category, to_field='name', verbose_name='Bölum:', on_delete=models.SET_NULL, null=True, related_name='alimonies')
     ruling = models.CharField(verbose_name='Karary çykaran:', max_length=100)
     ruling_date = models.DateField(verbose_name='Kararyň senesi:')
     began_paying = models.DateField(verbose_name='Alimenti töläp başlan wagty:')
@@ -103,8 +103,6 @@ class Alimony(models.Model):
     status = models.BooleanField(verbose_name='Işiň statusy:', default=False)
     created_at = models.DateTimeField('Işiň döredilen senesi:', auto_now_add=True)
 
-    def __str__(self):
-        return self.category
 
     class Meta:
         verbose_name = 'Aliment'
