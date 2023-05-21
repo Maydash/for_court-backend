@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-!x+gz8a=ncbk5)9)!j)%#uvk1w@k5_s*&r2i!egxg03@#!p5gs'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True    
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -28,7 +28,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework.authtoken',
     'rest_framework',
-    'report'
+    'report',
+    'mptt'
 ]
 
 MIDDLEWARE = [

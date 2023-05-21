@@ -39,3 +39,8 @@ class MustPayReceiptSerializer(serializers.ModelSerializer):
     class Meta:
         model = MustPayReceipt
         fields = '__all__'
+
+class AlimonySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Alimony
+        fields = '__all__'

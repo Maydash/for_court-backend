@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view, authentication_classes, permission_classes, parser_classes, throttle_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, parser_classes, throttle_classes, APIView
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.throttling import SimpleRateThrottle
@@ -8,6 +8,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from rest_framework import status
+from datetime import date
 from .serializers import *
 from .models import *
 
@@ -186,8 +187,28 @@ def get_receipt__by_id_update_delete(request, mustpay_id, receipt_id):
         return Response({'SUCCESS': 'Child deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
     return Response({'ERROR': 'User can delete only he\'s added children'}, status=status.HTTP_400_BAD_REQUEST)
 
+class InsolventsSinceThreeMonths(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [IpThrottle]
 
+    def get(self, request):
+        unpaids = []
+        for mustpay in MustPay.objects.all():
+            if (mustpay.receipts.latest().payment_date - date.today()).days > 90:
+                unpaids.append(mustpay)
+        serializer = MustPaySerializer(unpaids, context={'request': request}, many=True)
+        return Response(serializer.data)
 
+class AlimonyList(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [IpThrottle]
+    
+    def get(self, request):
+        alimonies = Alimony.objects.all()
+        serializer = AlimonySerializer(alimonies, context={'request': request}, many=True)
+        return Response(serializer.data)
 
 
 

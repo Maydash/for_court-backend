@@ -1,12 +1,24 @@
 from django.db import models
 from django.contrib.auth.models import User
+from mptt.models import MPTTModel, TreeForeignKey
 
 class Logos(models.Model):
     image = models.ImageField(upload_to='logo')
 
     class Meta:
-        verbose_name = ("logo")
-        verbose_name_plural = ("logolar")
+        verbose_name = ('logo')
+        verbose_name_plural = ('logolar')
+
+class Category(MPTTModel):
+    name = models.CharField("Ady", max_length=100, unique=True)
+    parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        verbose_name = 'Bölüm'
+        verbose_name_plural = 'Bölümler'   
 
 #algydar
 class Recipient(models.Model):
@@ -21,8 +33,8 @@ class Recipient(models.Model):
         return self.name_and_lastname
 
     class Meta:
-        verbose_name = "Algydar"
-        verbose_name_plural = "Algydarlar"
+        verbose_name = 'Algydar'
+        verbose_name_plural = 'Algydarlar'
 
 # algydaryn chagalary.
 class RecipientChild(models.Model):
@@ -36,8 +48,8 @@ class RecipientChild(models.Model):
         return self.name_and_lastname
 
     class Meta:
-        verbose_name = "Algydaryň çagasy"
-        verbose_name_plural = "Algydarlaryň çagalary"
+        verbose_name = 'Algydaryň çagasy'
+        verbose_name_plural = 'Algydarlaryň çagalary'
 
 # bergidarlar
 class MustPay(models.Model):
@@ -53,8 +65,8 @@ class MustPay(models.Model):
         return self.name_and_lastname
 
     class Meta:
-        verbose_name = "Bergidar"
-        verbose_name_plural = "Bergidarlar"
+        verbose_name = 'Bergidar'
+        verbose_name_plural = 'Bergidarlar'
 
 # tolegler
 class MustPayReceipt(models.Model):
@@ -70,13 +82,14 @@ class MustPayReceipt(models.Model):
         return self.currency
 
     class Meta:
-        verbose_name = "Töleg"
-        verbose_name_plural = "Tölegler"
+        verbose_name = 'Töleg'
+        verbose_name_plural = 'Tölegler'
+        get_latest_by = 'id'
 
 # alimentler.
 class Alimony(models.Model):
     user = models.ForeignKey(User, verbose_name='Admin:', on_delete=models.SET_NULL, null=True)
-    category = models.CharField(max_length=200, verbose_name='Bölüm:')
+    category = models.ForeignKey(Category, verbose_name='Bölum:', on_delete=models.SET_NULL, null=True, related_name='alimonies')
     ruling = models.CharField(verbose_name='Karary çykaran:', max_length=100)
     ruling_date = models.DateField(verbose_name='Kararyň senesi:')
     began_paying = models.DateField(verbose_name='Alimenti töläp başlan wagty:')
@@ -94,5 +107,5 @@ class Alimony(models.Model):
         return self.category
 
     class Meta:
-        verbose_name = "Aliment"
-        verbose_name_plural = "Alimentlar"
+        verbose_name = 'Aliment'
+        verbose_name_plural = 'Alimentlar'
