@@ -17,7 +17,7 @@ class RecipientChildAdmin(admin.ModelAdmin):
     list_display =('name_and_lastname', 'recipient', 'birthday')
 
 class MustPayReceiptAdmin(admin.ModelAdmin):
-    list_display = ('must_pay', 'full_assessment', 'payment', 'payment_date', 'alimony_percent')
+    list_display = ('must_pay', 'payment', 'payment_date', 'alimony_percent')
 
 class AlimonyAdmin(admin.ModelAdmin):
     list_display =('executor_register','must_pay', 'recipient', 'began_paying', 'created_at', 'ruling', 'Category', 'user', 'status')
