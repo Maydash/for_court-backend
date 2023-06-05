@@ -54,9 +54,12 @@ class LoginAPI(APIView):
                 token = Token.objects.create(user=user)
                 return Response({'token': token.key}, status=status.HTTP_201_CREATED)
             except:
-                Token.objects.filter(user=user).delete()
-                token = Token.objects.create(user=user)
+                token = Token.objects.get(user=user)
+                # Token.objects.filter(user=user).delete()
+                # token = Token.objects.create(user=user)
+                # return Response({'token': token.key}, status=status.HTTP_201_CREATED)
                 return Response({'token': token.key}, status=status.HTTP_201_CREATED)
+
         else:
             return Response({'ERROR': 'Invalid password'}, status=status.HTTP_417_EXPECTATION_FAILED)
 
@@ -111,7 +114,7 @@ def get_recipient_child_by_id_update_delete(request, recipient_id, child_id):
     return Response({'ERROR': 'User can delete only he\'s added children'}, status=status.HTTP_400_BAD_REQUEST)
 
 class MustPayList(ListAPIView):
-    queryset = MustPay.objects.filter(alimonies__status=False).order_by('-id')
+    queryset = MustPay.objects.all().order_by('-id')
     serializer_class = MustPaySerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -166,18 +169,19 @@ def get_receipt__by_id_update_delete(request, mustpay_id, receipt_id):
         return Response({'SUCCESS': 'Child deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
     return Response({'ERROR': 'User can delete only he\'s added children'}, status=status.HTTP_400_BAD_REQUEST)
 
-class InsolventsSinceThreeMonths(APIView):
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [IpThrottle]
-
-    def get(self, request):
+@api_view(['GET'])
+def InsolventsSinceThreeMonths(request):
+    if request.method == 'GET':
         insolvents = []
         for alimony in Alimony.objects.filter(status=False):
-            if (date.today() - alimony.must_pay.receipts.latest().payment_date).days > 90:
-                insolvents.append(alimony.must_pay)
-        serializer = MustPaySerializer(insolvents, context={'request': request}, many=True)
-        return Response(serializer.data)
+            try:
+                if(date.today() - alimony.must_pay.receipts.latest().payment_date).days > 90:
+                    insolvents.append(alimony.must_pay)
+            except MustPayReceipt.DoesNotExist:
+                pass
+            serializer = MustPaySerializer(insolvents, context={'request':request}, many=True)
+            return Response(serializer.data)
+
 
 class AlimonyList(ListAPIView):
     queryset = Alimony.objects.filter(status=False).order_by('-id')

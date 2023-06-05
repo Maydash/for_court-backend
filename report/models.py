@@ -101,7 +101,7 @@ class Alimony(models.Model):
     recipient = models.ForeignKey(Recipient, to_field='name_and_lastname', verbose_name='Algydaryň ady we familiyasy:', on_delete=models.CASCADE, related_name='alimonies')
     note = models.TextField(verbose_name='Bellik:', blank=True)
     status = models.BooleanField(verbose_name='Işiň statusy:', default=False)
-    created_at = models.DateTimeField('Işiň döredilen senesi:', auto_now_add=True)
+    created_at = models.DateField('Işiň döredilen senesi:', auto_now_add=True)
 
     def __str__(self):
         return self.executor_register
