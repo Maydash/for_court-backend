@@ -63,13 +63,19 @@ class LoginAPI(APIView):
         else:
             return Response({'ERROR': 'Invalid password'}, status=status.HTTP_417_EXPECTATION_FAILED)
 
-class RecipientDetail(RetrieveUpdateDestroyAPIView):
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [IpThrottle]
-    queryset = Recipient.objects.all()
-    serializer_class = RecipientSerializer
-    lookup_field = 'id'
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@throttle_classes([IpThrottle])
+def recipient_detail(request, id):
+    if request.method == 'GET':
+        try:
+            alimony = Alimony.objects.get(id=id)
+        except Alimony.DoesNotExist:
+            return Response({'no data'})
+        recipient = Recipient.objects.get(id=alimony.recipient.id)
+        serializer = RecipientSerializer(recipient, context={'request':request})
+        return Response(serializer.data)
 
 @api_view(['GET'])
 @throttle_classes([IpThrottle])
@@ -121,13 +127,19 @@ class MustPayList(ListAPIView):
     throttle_classes = [IpThrottle]
     pagination_class = PaginatorConfig
 
-class MustPayDetail(RetrieveUpdateDestroyAPIView):
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [IpThrottle]
-    queryset = MustPay.objects.all()
-    serializer_class = MustPaySerializer
-    lookup_field = 'id'
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@throttle_classes([IpThrottle])
+def mustpay_detail(request, id):
+    if request.method == 'GET':
+        try:
+            alimony = Alimony.objects.get(id=id)
+        except Alimony.DoesNotExist:
+            return Response({'no data'})
+        mustpay = MustPay.objects.get(id=alimony.must_pay.id)
+        serializer = MustPaySerializer(mustpay, context={'request':request})
+        return Response(serializer.data)
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
@@ -172,15 +184,18 @@ def get_receipt__by_id_update_delete(request, mustpay_id, receipt_id):
 @api_view(['GET'])
 def InsolventsSinceThreeMonths(request):
     if request.method == 'GET':
-        insolvents = []
-        for alimony in Alimony.objects.filter(status=False):
-            try:
-                if(date.today() - alimony.must_pay.receipts.latest().payment_date).days > 90:
-                    insolvents.append(alimony.must_pay)
-            except MustPayReceipt.DoesNotExist:
-                pass
-            serializer = MustPaySerializer(insolvents, context={'request':request}, many=True)
-            return Response(serializer.data)
+        try:
+            insolvents = []
+            for alimony in Alimony.objects.filter(status=False):
+                try:
+                    if(date.today() - alimony.must_pay.receipts.latest().payment_date).days > 90:
+                        insolvents.append(alimony.must_pay)
+                except AssertionError:
+                    return Response({'aa'})
+                serializer = MustPaySerializer(insolvents, context={'request':request}, many=True)
+                return Response(serializer.data)
+        except AssertionError:
+            return Response({'ok'})
 
 
 class AlimonyList(ListAPIView):
@@ -206,32 +221,52 @@ class ArchiveList(ListAPIView):
     permission_classes = [IsAuthenticated]
     throttle_classes = [IpThrottle]
     pagination_class = PaginatorConfig
-
+    
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-@parser_classes([JSONParser, FormParser, MultiPartParser])
-def create_alimony(request):
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+@throttle_classes([IpThrottle])
+def add_alimony(request):
     if request.method == 'POST':
-        recipient = request.data.get('recipient')
-        mustpay = request.data.get('mustpay')
-        alimony = request.data.get('alimony')
-        serializerRecipient = RecipientSerializer(data=recipient)
-        if serializerRecipient.is_valid():
-            completedRecipient = serializerRecipient.save(recipient_adder=request.user)
-        else:
-            return Response(serializerRecipient.errors, status=status.HTTP_400_BAD_REQUEST)
-        serializerMustpay = MustPaySerializer(data=mustpay)
-        if serializerMustpay.is_valid():
-            completedMustpay = serializerMustpay.save(mustpay_adder=request.user)
-        else:
-            completedRecipient.delete()
-            return Response(serializerMustpay.errors, status=status.HTTP_400_BAD_REQUEST)
-        serializerAlimony = AlimonySerializer(data=alimony)
-        if serializerAlimony.is_valid():
-            serializerAlimony.save(user=request.user, must_pay=completedMustpay, recipient=completedRecipient)
-            return Response({'SUCCESS': 'Alimony created successfully.'}, status=status.HTTP_201_CREATED)
-        else:
-            completedRecipient.delete()
-            completedMustpay.delete()
-            return Response(serializerAlimony.errors, status=status.HTTP_400_BAD_REQUEST)
+        recipient = {
+            'name_and_lastname': request.POST['recipient[name_and_lastname]'],
+            'birthday': request.POST['recipient[birthday]'],
+            'phone_number': request.POST['recipient[phone_number]'],
+            'address': request.POST['recipient[address]'],
+            'document_scan': request.FILES['recipient[document_scan]']
+        }
+        mustpay = {
+            'name_and_lastname': request.POST['mustpay[name_and_lastname]'],
+            'birthday': request.POST['mustpay[birthday]'],
+            'phone_number': request.POST['mustpay[phone_number]'],
+            'phone_number2': request.POST['mustpay[phone_number2]'],
+            'address': request.POST['mustpay[address]'],
+            'job_status': request.POST['mustpay[job_status]'],
+            'document_scan': request.FILES['mustpay[document_scan]']
+        }
+        alimony = {
+            'Category': request.POST['alimony[Category]'],
+            'ruling': request.POST['alimony[ruling]'],
+            'ruling_date': request.POST['alimony[ruling_date]'],
+            'began_paying': request.POST['alimony[began_paying]'],
+            'ruling_scan': request.FILES['alimony[ruling_scan]'],
+            'executor': request.POST['alimony[executor]'],
+            'executor_register': request.POST['alimony[executor_register]'],
+            'executor_date': request.POST['alimony[executor_date]'],
+            'note': request.POST['alimony[note]']
+        }
+        recipient_serializer = RecipientSerializer(data=recipient)
+        mustpay_serializer = MustPaySerializer(data=mustpay)
+        alimony_serializer = AlimonySerializer(data=alimony)
+        if recipient_serializer.is_valid() and mustpay_serializer.is_valid() and alimony_serializer.is_valid():
+            addedRecipient = recipient_serializer.save(recipient_adder=request.user)
+            addedMustPay = mustpay_serializer.save(mustpay_adder=request.user)
+            alimony_serializer.save(user=request.user, recipient=addedRecipient, must_pay=addedMustPay)
+            return Response({'SUCCESS': 'Submitted sucessfully!'}, status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def pass_undefined(request):
+    if request.method == 'GET':
+        return Response({'reload'})
